@@ -107,7 +107,7 @@ function login(){
   .then(res=>{
     loader.style.display = "none"; // ✅ hide loader
 
-    if(res.status==="success"){
+    if(res.status==="SUCCESS"){
       sessionStorage.setItem("admin","true");
       window.location.href="dashboard.html";
     }else{
@@ -125,3 +125,4 @@ function login(){
 
 </body>
 </html>
+
