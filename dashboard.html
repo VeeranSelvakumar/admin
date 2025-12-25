@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body{
+  font-family:'Segoe UI',Arial,sans-serif;
+  background:#f0f4f8;
+  padding:15px;
+  margin:0;
+}
+.top{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:15px;
+  background:#fff;
+  padding:10px 12px;
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+}
+.top h2{margin:0;color:#333}
+select,button,input{
+  padding:6px 12px;
+  border-radius:6px;
+  font-size:14px;
+}
+button{
+  border:none;
+  cursor:pointer;
+  color:#fff;
+  font-weight:bold;
+  transition:.3s;
+}
+.view{background:#198754}
+.logout{background:#dc3545}
+.view:hover{background:#145c3c}
+.logout:hover{background:#b52a3b}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+}
+th,td{
+  padding:10px;
+  border:1px solid #ddd;
+  font-size:13px;
+}
+th{
+  background:#1a73e8;
+  color:#fff;
+}
+tbody tr:hover{background:#f4f8ff}
+
+.view-btn{
+  background:#198754;
+  color:#fff;
+  padding:6px 12px;
+  border-radius:6px;
+  text-decoration:none;
+  font-weight:bold;
+}
+
+.loader{
+  width:40px;height:40px;
+  border:4px solid #e0e0e0;
+  border-top:4px solid #1a73e8;
+  border-radius:50%;
+  margin:10px auto;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#datetime{
+  background:#e9f1ff;
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:13px;
+  font-weight:bold;
+}
+@media(max-width:768px){
+  th,td{font-size:11px;padding:6px}
+}
+</style>
+</head>
+
+<body>
+
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbwb3OR5IUUttR_kxR5CxFUssO6mcpxyd7A4WgHwOhUjS_9SDIHP5_3raQ84itRMr5YtUw/exec";
+  const APP_SCRIPT_URL = API;
+  const ADMIN_TOKEN = "admin123";
+
+
+if(sessionStorage.getItem("admin")!=="true"){
+  location.replace("index.html");
+}
+history.pushState(null,null,location.href);
+window.onpopstate=()=>history.go(1);
+</script>
+
+<div id="loader" class="loader" style="display:none"></div>
+
+
+
+<div class="top">
+  <h2>📊 Admin Dashboard</h2>
+  <button class="view" onclick="sendFollowUpWhatsApp()">📲 Send Follow-up</button>
+
+  <select id="serviceSelect" onchange="loadData()">
+    <option value="">-- All Services --</option>
+    <option>Nativity Certificate</option>
+    <option>Community Certificate</option>
+    <option>Income Certificate</option>
+    <option>First Graduate Certificate</option>
+    <option>Widow Certificate</option>
+  </select>
+
+  <div id="datetime"></div>
+  <button class="logout" onclick="logout()">Logout</button>
+</div>
+
+<table>
+<thead>
+<tr>
+  <th>Date</th>
+  <th>Service</th>
+  <th>Name</th>
+  <th>Mobile</th>
+  <th>Folder</th>
+  <th>Status</th>
+  <th>Call Status</th>
+  <th>Last Follow-up</th>
+  <th>Remarks</th>
+  <th>UPI Ref</th>
+  <th>Payment Status</th>
+  <th>Verified By</th>
+  <th>Payment Action</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+
+<script>
+
+function loadData(){
+  document.getElementById("loader").style.display="block";
+  const service=document.getElementById("serviceSelect").value;
+  let url=API+"?action=getData&token=admin123";
+  if(service) url+="&service="+encodeURIComponent(service);
+
+  fetch(url).then(r=>r.json()).then(d=>{
+    renderTable(d||[]);
+    document.getElementById("loader").style.display="none";
+    applyRowColors();
+  });
+}
+
+function renderTable(data){
+  const tb=document.getElementById("tbody");
+  tb.innerHTML="";
+  data.forEach(a=>{
+    tb.innerHTML+=`
+    <tr>
+      <td>${a.Date||""}</td>
+      <td>${a.Service||""}</td>
+      <td>${a.Name||""}</td>
+      <td>${a.Mobile||""}</td>
+      <td><a href="${a.Folder}" target="_blank" class="view-btn">View</a></td>
+
+      <td>
+        <select onchange="updateStatus(${a._row},this.value)">
+          <option ${a.Status==="Pending"?"selected":""}>Pending</option>
+          <option ${a.Status==="Completed"?"selected":""}>Completed</option>
+        </select>
+      </td>
+
+      <td>${a["Call Status"]||""}</td>
+      <td>${a["Last Follow-up"]||""}</td>
+
+      <td>
+        <input value="${a.Remarks||""}"
+          onchange="updateRemarks(${a._row},this.value)">
+      </td>
+
+      <td>${a["UPI Ref"]||""}</td>
+
+      <td>
+        <span style="padding:4px 8px;border-radius:6px;color:#fff;
+        background:${a["Payment Status"]==="PAID"?"#28a745":"#dc3545"}">
+        ${a["Payment Status"]||"NOT PAID"}
+        </span>
+      </td>
+
+      <td>${a["Verified By"]||""}</td>
+      <td>
+        ${a["Payment Status"] === "PAID" && a["Verified By"] === "Customer"
+          ? `
+            <button onclick="verifyByAdmin(${a._row})">Verify</button>
+            <button style="background:red"
+              onclick="markFake(${a._row}, '${a.Mobile}', '${a.Name}')">
+              Fake
+            </button>
+          `
+          : "—"}
+      </td>
+
+
+    </tr>`;
+  });
+}
+
+function updateStatus(row,status){
+  post(`action=updateStatus&row=${row}&status=${status}`);
+}
+function updateRemarks(row,remarks){
+  post(`action=updateRemarks&row=${row}&remarks=${remarks}`);
+}
+
+
+function post(body,reload){
+  fetch(API,{
+    method:"POST",
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body:"token=admin123&"+body
+  })
+  .then(r=>r.json())
+  .then(()=>reload?loadData():null);
+}
+
+function applyRowColors(){
+  document.querySelectorAll("#tbody tr").forEach(tr=>{
+    const s=tr.children[5].querySelector("select").value;
+    tr.style.background=
+      s==="Completed"?"#e8f5e9":
+      s==="Pending"?"#fff8e1":"#fff";
+  });
+}
+
+function logout(){
+  sessionStorage.clear();
+  location.href="index.html";
+}
+
+function updateDateTime(){
+  document.getElementById("datetime").innerText=
+  "🕒 "+new Date().toLocaleString("en-IN");
+}
+setInterval(updateDateTime,1000);
+updateDateTime();
+loadData();
+
+function sendFollowUpWhatsApp(){
+  const service = document.getElementById("serviceSelect").value;
+  let url = API + "?action=getData&token=admin123";
+  if(service) url += "&service=" + encodeURIComponent(service);
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      const pending = data.filter(a =>
+        a["Call Status"] === "Called – No Response"
+      );
+
+      if(pending.length === 0){
+        alert("✅ No pending follow-ups");
+        return;
+      }
+
+      pending.forEach(u => {
+        const msg =
+`Hello ${u.Name},
+We tried contacting you regarding your ${u.Service} application.
+Please call us back.
+
+– Veeran Tech Point`;
+
+        const wa =
+          "https://wa.me/91" + u.Mobile +
+          "?text=" + encodeURIComponent(msg);
+
+        window.open(wa, "_blank");
+      });
+
+      alert(`📲 ${pending.length} WhatsApp chats opened`);
+    });
+}
+function verifyByAdmin(row){
+  if(!confirm("Payment verified in bank app?")) return;
+
+  fetch(APP_SCRIPT_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      action: "verifyPaymentAdmin",
+      token: ADMIN_TOKEN,
+      row: row
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.status==="SUCCESS"){
+      alert("✅ Payment verified");
+      loadData();
+ // reload table
+    }else{
+      alert(res.message || "Failed");
+    }
+  });
+}
+function markFake(row, mobile, name){
+  if(!confirm("Mark this payment as FAKE?")) return;
+
+  fetch(APP_SCRIPT_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      action: "markFakePayment",
+      token: ADMIN_TOKEN,
+      row: row,
+      mobile: mobile,
+      name: name
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(res.status==="SUCCESS"){
+      window.open(res.whatsapp, "_blank");
+      loadData();
+
+    }else{
+      alert(res.message);
+    }
+  });
+}
+
+
+</script>
+</body>
+</html>

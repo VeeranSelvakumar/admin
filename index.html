@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(120deg,#89f7fe,#66a6ff);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  margin:0;
+}
+.login-box{
+  background:white;
+  padding:35px;
+  width:350px;
+  border-radius:12px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.2);
+  text-align:center;
+}
+.login-box h2{
+  margin-bottom:25px;
+}
+input,button{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border-radius:6px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
+button{
+  background:#1a73e8;
+  color:white;
+  border:none;
+  font-weight:bold;
+  transition:0.3s;
+}
+button:hover{
+  background:#1666c1;
+  cursor:pointer;
+}
+#msg{
+  margin-top:10px;
+  font-weight:bold;
+}
+
+.loader{
+  width:40px;
+  height:40px;
+  border:4px solid #e0e0e0;
+  border-top:4px solid #1a73e8;
+  border-radius:50%;
+  margin:15px auto 0;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  0%{transform:rotate(0deg)}
+  100%{transform:rotate(360deg)}
+}
+
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <h2>Admin Login</h2>👨‍💼 
+  <input type="text" id="username" placeholder="Username">
+  <input type="password" id="password" placeholder="Password">
+  <button onclick="login()">Login</button>
+  <div id="loader" class="loader" style="display:none;"></div>
+  <p id="msg" style="color:red"></p>
+</div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbwb3OR5IUUttR_kxR5CxFUssO6mcpxyd7A4WgHwOhUjS_9SDIHP5_3raQ84itRMr5YtUw/exec";
+
+function login(){
+  const u = document.getElementById("username").value.trim();
+  const p = document.getElementById("password").value.trim();
+  const msg = document.getElementById("msg");
+  const loader = document.getElementById("loader");
+
+  msg.innerText = "";
+
+  if(!u || !p){
+    msg.innerText = "⚠ Please fill all fields";
+    return;
+  }
+
+  loader.style.display = "block";   // 🔄 show loader
+
+  fetch(API,{
+    method:"POST",
+    body:new URLSearchParams({
+      action:"login",
+      username:u,
+      password:p
+    })
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    loader.style.display = "none"; // ✅ hide loader
+
+    if(res.status==="success"){
+      sessionStorage.setItem("admin","true");
+      window.location.href="dashboard.html";
+    }else{
+      msg.innerText = "❌ Invalid Login";
+    }
+  })
+  .catch(err=>{
+    loader.style.display = "none"; // ❌ hide loader
+    msg.innerText = "⚠ Network error";
+  });
+}
+
+</script>
+
+
+</body>
+</html>
